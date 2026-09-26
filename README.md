@@ -31,8 +31,10 @@ No database, API key, or external dataset is required.
 
 ```text
 .
+├── README.md
 ├── app.py
-└── README.md
+└── requirements.txt
+
 ```
 
 `app.py` contains the complete application, including the knowledge base, inference functions, input validation, and user interface.
