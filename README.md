@@ -35,7 +35,7 @@ No database, API key, or external dataset is required.
 └── README.md
 ```
 
-`blood_final.py` contains the complete application, including the knowledge base, inference functions, input validation, and user interface.
+`app.py` contains the complete application, including the knowledge base, inference functions, input validation, and user interface.
 
 ## How the System Works
 
