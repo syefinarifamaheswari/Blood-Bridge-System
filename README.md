@@ -31,7 +31,7 @@ No database, API key, or external dataset is required.
 
 ```text
 .
-├── blood_final.py
+├── app.py
 └── README.md
 ```
 
@@ -65,62 +65,6 @@ This is a small, fixed rule system. The ABO and Rh conclusions are independent; 
 - A web browser.
 
 An internet connection is required to download dependencies. After installation, the application can run locally.
-
-## Installation and Execution
-
-### Windows — PowerShell
-
-#### 1. Download the repository
-
-Select **Code → Download ZIP** on GitHub and extract the archive.
-
-Open PowerShell in the extracted folder containing `blood_final.py`.
-
-Alternatively, clone the repository using the HTTPS URL shown under **Code**, then open the cloned folder.
-
-#### 2. Create a virtual environment
-
-```powershell
-py -m venv .venv
-```
-
-#### 3. Install dependencies
-
-```powershell
-.\.venv\Scripts\python.exe -m pip install --upgrade pip
-.\.venv\Scripts\python.exe -m pip install --upgrade streamlit
-```
-
-These commands use the virtual environment directly, so activation is not required.
-
-#### 4. Run the application
-
-```powershell
-.\.venv\Scripts\python.exe -m streamlit run blood_final.py --server.port 8502
-```
-
-#### 5. Open the application
-
-Visit:
-
-**http://localhost:8502**
-
-Keep the terminal running while using the application. Press **Ctrl + C** to stop it.
-
-### macOS or Linux
-
-Open a terminal in the folder containing `blood_final.py`, then run:
-
-```bash
-python3 -m venv .venv
-.venv/bin/python -m pip install --upgrade pip
-.venv/bin/python -m pip install --upgrade streamlit
-.venv/bin/python -m streamlit run blood_final.py --server.port 8502
-```
-
-Open **http://localhost:8502** in a browser.
-
-If the virtual environment or pip components are unavailable, install them through your operating system's package manager first.
 
 ## How to Use
 
