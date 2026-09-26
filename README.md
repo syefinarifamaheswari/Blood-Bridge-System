@@ -104,13 +104,7 @@ Browser-level visual verification was not completed in the development environme
 
 | Problem | Solution |
 |---|---|
-| `pip` is not recognized | Use the `python.exe -m pip` commands shown above. |
-| `py` is not recognized | Check that Python is installed. If `python --version` works, use `python -m venv .venv`. |
 | `No module named streamlit` | Install Streamlit using the same virtual environment Python executable used to run the application. |
-| Streamlit has no attribute `html` | Upgrade Streamlit in the virtual environment. |
-| Port 8502 is already in use | Stop the existing process or use `--server.port 8503`, then open `http://localhost:8503`. |
-| File does not exist | Confirm that the terminal is in the folder containing `blood_final.py`. |
-| An older interface appears | Confirm the filename being executed and open the exact Local URL printed in the terminal. |
 
 ## Live Demo
 
