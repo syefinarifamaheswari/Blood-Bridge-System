@@ -1,146 +1,250 @@
 import streamlit as st
+from html import escape
+
 
 # ==========================================
-# 1. KNOWLEDGE BASE & INFERENCE ENGINE
+# 1. BASIS PENGETAHUAN
 # ==========================================
+
+ABO_RULES = {
+    "PRC": {
+        "O": ["O"],
+        "A": ["A", "O"],
+        "B": ["B", "O"],
+        "AB": ["AB", "A", "B", "O"],
+    },
+    "FFP": {
+        "O": ["O", "A", "B", "AB"],
+        "A": ["A", "AB"],
+        "B": ["B", "AB"],
+        "AB": ["AB"],
+    },
+}
+
+
+# ==========================================
+# 2. MESIN INFERENSI
+# ==========================================
+
 def cek_aturan(fakta, inferred):
     aturan_terpicu = False
 
-    # ----------------------------------------
-    # ATURAN UNTUK PRC (Packed Red Cells)
-    # ----------------------------------------
-    if fakta["komponen"] == "PRC":
-        # Aturan Golongan Darah ABO (PRC)
-        if fakta["pasien_abo"] == "O" and not inferred["donor_abo_valid"]:
-            inferred["donor_abo_valid"] = ["O"]
-            aturan_terpicu = True
-        elif fakta["pasien_abo"] == "A" and not inferred["donor_abo_valid"]:
-            inferred["donor_abo_valid"] = ["A", "O"]
-            aturan_terpicu = True
-        elif fakta["pasien_abo"] == "B" and not inferred["donor_abo_valid"]:
-            inferred["donor_abo_valid"] = ["B", "O"]
-            aturan_terpicu = True
-        elif fakta["pasien_abo"] == "AB" and not inferred["donor_abo_valid"]:
-            inferred["donor_abo_valid"] = ["AB", "A", "B", "O"]
-            aturan_terpicu = True
+    # Terapkan aturan ABO jika belum diperoleh.
+    if not inferred["donor_abo_valid"]:
+        inferred["donor_abo_valid"] = (
+            ABO_RULES[fakta["komponen"]][fakta["pasien_abo"]].copy()
+        )
+        aturan_terpicu = True
 
-        # Aturan Rhesus (PRC) - Sangat Ketat
-        if fakta["pasien_rh"] == "Negatif" and not inferred["donor_rh_valid"]:
+    # Terapkan aturan Rhesus jika belum diperoleh.
+    if not inferred["donor_rh_valid"]:
+        if (
+            fakta["komponen"] == "PRC"
+            and fakta["pasien_rh"] == "Negatif"
+        ):
             inferred["donor_rh_valid"] = ["Negatif"]
-            aturan_terpicu = True
-        elif fakta["pasien_rh"] == "Positif" and not inferred["donor_rh_valid"]:
+        else:
             inferred["donor_rh_valid"] = ["Positif", "Negatif"]
-            aturan_terpicu = True
 
-    # ----------------------------------------
-    # ATURAN UNTUK FFP (Fresh Frozen Plasma)
-    # ----------------------------------------
-    elif fakta["komponen"] == "FFP":
-        # Aturan Golongan Darah ABO (FFP) - Kebalikan dari PRC
-        if fakta["pasien_abo"] == "O" and not inferred["donor_abo_valid"]:
-            inferred["donor_abo_valid"] = ["O", "A", "B", "AB"]
-            aturan_terpicu = True
-        elif fakta["pasien_abo"] == "A" and not inferred["donor_abo_valid"]:
-            inferred["donor_abo_valid"] = ["A", "AB"]
-            aturan_terpicu = True
-        elif fakta["pasien_abo"] == "B" and not inferred["donor_abo_valid"]:
-            inferred["donor_abo_valid"] = ["B", "AB"]
-            aturan_terpicu = True
-        elif fakta["pasien_abo"] == "AB" and not inferred["donor_abo_valid"]:
-            inferred["donor_abo_valid"] = ["AB"]
-            aturan_terpicu = True
-
-        # Aturan Rhesus (FFP) - Bebas / Tidak Terikat Rhesus
-        if not inferred["donor_rh_valid"]:
-            inferred["donor_rh_valid"] = ["Positif", "Negatif"] # Bisa terima keduanya
-            aturan_terpicu = True
+        aturan_terpicu = True
 
     return aturan_terpicu
 
+
 def jalankan_forward_chaining(fakta):
-    inferred = {"donor_abo_valid": [], "donor_rh_valid": []}
-    loop_aktif = True
-    
-    while loop_aktif:
-        loop_aktif = cek_aturan(fakta, inferred)
-        
+    # Validasi juga dilakukan pada mesin inferensi.
+    if (
+        fakta.get("komponen") not in ABO_RULES
+        or fakta.get("pasien_abo") not in ("A", "B", "AB", "O")
+        or fakta.get("pasien_rh") not in ("Positif", "Negatif")
+    ):
+        raise ValueError(
+            "Golongan darah, Rhesus, atau komponen tidak valid."
+        )
+
+    inferred = {
+        "donor_abo_valid": [],
+        "donor_rh_valid": [],
+    }
+
+    # Berhenti ketika tidak ada fakta baru.
+    while cek_aturan(fakta, inferred):
+        pass
+
     return inferred
 
+
 # ==========================================
-# 2. ANTARMUKA PENGGUNA (UI) STREAMLIT
+# 3. LABEL DONOR
 # ==========================================
 
-st.set_page_config(page_title="BloodBridge", page_icon="🩸")
-
-st.title("🩸 BloodBridge")
-st.subheader("Sistem Verifikasi Kompatibilitas Darah Berbasis Pengetahuan")
-st.markdown("""
-Sistem ini menggunakan metode **Forward Chaining** untuk memverifikasi kompatibilitas donor. 
-Aturan (_rules_) yang diterapkan diambil dari pedoman klinis transfusi darah (mencakup perbedaan logika antara antigen seluler dan antibodi plasma).
-""")
-st.divider()
-
-col1, col2 = st.columns(2)
-
-with col1:
-    st.write("### Data Pasien")
-    pasien_abo = st.selectbox(
-        "Golongan Darah Pasien (ABO):", 
-        ["A", "B", "AB", "O"], 
-        index=None, 
-        placeholder="Pilih kategori yang sesuai"
-    )
-    pasien_rh = st.selectbox(
-        "Status Rhesus (Rh):", 
-        ["Positif", "Negatif"], 
-        index=None, 
-        placeholder="Pilih kategori yang sesuai"
+def tampilkan_label(daftar_donor):
+    # Setiap kelompok berisi maksimal empat label.
+    html = (
+        '<div style="display:flex;flex-direction:column;'
+        'gap:8px;margin:10px 0 16px;">'
     )
 
-with col2:
-    st.write("### Kebutuhan Transfusi")
-    komponen = st.selectbox(
-        "Jenis Komponen Darah:", 
-        ["PRC (Packed Red Cells)", "FFP (Fresh Frozen Plasma)"], 
-        index=None, 
-        placeholder="Pilih kategori yang sesuai"
+    for i in range(0, len(daftar_donor), 4):
+        html += (
+            '<div style="display:flex;flex-wrap:wrap;gap:8px;">'
+        )
+
+        for donor in daftar_donor[i:i + 4]:
+            # Spasi tidak dapat dipisah ke baris berikutnya.
+            label = escape(donor).replace(" ", "&nbsp;")
+
+            html += (
+                '<span style="'
+                'display:inline-flex;'
+                'flex:0 0 auto;'
+                'white-space:nowrap;'
+                'align-items:center;'
+                'background-color:#ff4b4b;'
+                'color:white;'
+                'padding:5px 10px;'
+                'border-radius:15px;'
+                'font-weight:700;'
+                'line-height:1.5;'
+                '">'
+                f'{label}'
+                '</span>'
+            )
+
+        html += '</div>'
+
+    html += '</div>'
+
+    st.html(html)
+
+
+# ==========================================
+# 4. ANTARMUKA STREAMLIT
+# ==========================================
+
+def main():
+    st.set_page_config(
+        page_title="BloodBridge",
+        page_icon="🩸",
     )
 
-# Ekstraksi kode komponen murni (mengambil 3 huruf pertama)
-kode_komponen = komponen.split(" ")[0]
+    st.title("🩸 BloodBridge")
+    st.subheader(
+        "Sistem Verifikasi Kompatibilitas Darah Berbasis Pengetahuan"
+    )
 
-if st.button("Verifikasi Kompatibilitas Donor", type="primary", use_container_width=True):
-    
-    # Validasi input kosong
-    if pasien_abo is None or pasien_rh is None or komponen is None:
-        st.warning("⚠️ Harap pilih semua kategori (Golongan Darah, Rhesus, dan Komponen) terlebih dahulu.")
-    else:
-        # Ekstraksi kode komponen murni (mengambil 3 huruf pertama)
-        kode_komponen = komponen.split(" ")[0]
-        
-        fakta_awal = {
-            "komponen": kode_komponen, 
-            "pasien_abo": pasien_abo,
-            "pasien_rh": pasien_rh
-        }
-        
-        with st.spinner('Mengevaluasi basis pengetahuan medis...'):
-            hasil = jalankan_forward_chaining(fakta_awal)
-            
-            komponen_valid = []
-            for abo in hasil["donor_abo_valid"]:
-                for rh in hasil["donor_rh_valid"]:
-                    komponen_valid.append(f"{abo} {rh}")
-        
-        st.success("✅ Inferensi Selesai!")
-        st.write(f"Pasien dengan profil **{pasien_abo} {pasien_rh}** yang membutuhkan **{kode_komponen}** dapat menerima darah dari donor berikut:")
-        
-        # Render pill/tag
-        html_tags = " ".join([f"<span style='background-color: #ff4b4b; color: white; padding: 5px 10px; border-radius: 15px; margin-right: 5px; font-weight: bold;'>{darah}</span>" for darah in komponen_valid])
-        st.markdown(html_tags, unsafe_allow_html=True)
+    st.markdown(
+        "Sistem ini menggunakan metode **Forward Chaining** "
+        "untuk memverifikasi kompatibilitas berdasarkan aturan "
+        "**ABO**, **Rhesus**, dan jenis komponen darah "
+        "**PRC** atau **FFP**."
+    )
 
-        # Penjelasan dinamis
-        if kode_komponen == "PRC":
-            st.info("💡 **Traceability PRC:** Untuk *Packed Red Cells*, sistem memastikan tidak ada **antigen** asing yang masuk ke tubuh pasien. Rhesus dicocokkan secara ketat.")
-        elif kode_komponen == "FFP":
-            st.warning("💡 **Traceability FFP:** Untuk *Plasma*, aturan berbalik karena kita mencegah masuknya **antibodi** asing. Faktor Rhesus umumnya tidak memberikan reaksi klinis signifikan pada transfusi FFP sehingga semua Rhesus diizinkan.")
+    st.divider()
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.write("### Data Pasien")
+
+        pasien_abo = st.selectbox(
+            "Golongan Darah Pasien (ABO):",
+            ["A", "B", "AB", "O"],
+            index=None,
+            placeholder="Pilih kategori yang sesuai",
+        )
+
+        pasien_rh = st.selectbox(
+            "Status Rhesus (Rh):",
+            ["Positif", "Negatif"],
+            index=None,
+            placeholder="Pilih kategori yang sesuai",
+        )
+
+    with col2:
+        st.write("### Kebutuhan Transfusi")
+
+        # Nilai internal langsung berupa PRC atau FFP.
+        # Karena itu, tidak perlu memanggil komponen.split().
+        komponen = st.selectbox(
+            "Jenis Komponen Darah:",
+            ["PRC", "FFP"],
+            index=None,
+            placeholder="Pilih kategori yang sesuai",
+            format_func=lambda kode: {
+                "PRC": "PRC (Packed Red Cells)",
+                "FFP": "FFP (Fresh Frozen Plasma)",
+            }[kode],
+        )
+
+    tombol_verifikasi = st.button(
+        "Verifikasi Kompatibilitas Donor",
+        type="primary",
+        use_container_width=True,
+    )
+
+    if tombol_verifikasi:
+        if (
+            pasien_abo is None
+            or pasien_rh is None
+            or komponen is None
+        ):
+            st.warning(
+                "⚠️ Harap pilih Golongan Darah, Rhesus, "
+                "dan Komponen terlebih dahulu."
+            )
+
+        else:
+            fakta = {
+                "komponen": komponen,
+                "pasien_abo": pasien_abo,
+                "pasien_rh": pasien_rh,
+            }
+
+            with st.spinner("Mengevaluasi basis pengetahuan..."):
+                hasil = jalankan_forward_chaining(fakta)
+
+                daftar_donor = [
+                    f"{abo} {rh}"
+                    for abo in hasil["donor_abo_valid"]
+                    for rh in hasil["donor_rh_valid"]
+                ]
+
+            st.success("✅ Inferensi Selesai!")
+
+            st.write(
+                f"Untuk pasien **{pasien_abo} {pasien_rh}** "
+                f"yang membutuhkan **{komponen}**, "
+                "profil donor yang sesuai dengan aturan "
+                "ABO dan Rh dalam sistem ini adalah:"
+            )
+
+            tampilkan_label(daftar_donor)
+
+            if komponen == "PRC":
+                st.info(
+                    "💡 **Traceability PRC:** "
+                    "Sistem menerapkan aturan ABO untuk sel darah merah. "
+                    "Dalam aturan sistem ini, pasien Rh negatif "
+                    "dipasangkan dengan donor Rh negatif, sedangkan "
+                    "pasien Rh positif memiliki pilihan donor "
+                    "Rh positif maupun negatif."
+                )
+
+            else:
+                st.warning(
+                    "💡 **Traceability FFP:** "
+                    "Sistem menggunakan aturan ABO untuk plasma "
+                    "yang berkebalikan dengan PRC. "
+                    "Dalam aturan FFP pada aplikasi ini, "
+                    "Rhesus tidak menjadi pembatas pilihan donor."
+                )
+
+    st.caption(
+        "Aplikasi edukasi: hasil hanya mencakup aturan ABO dan Rh, "
+        "bukan penetapan kelayakan transfusi klinis."
+    )
+
+
+if __name__ == "__main__":
+    main()
