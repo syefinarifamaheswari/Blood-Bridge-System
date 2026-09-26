@@ -84,42 +84,63 @@ col1, col2 = st.columns(2)
 
 with col1:
     st.write("### Data Pasien")
-    pasien_abo = st.selectbox("Golongan Darah Pasien (ABO):", ["A", "B", "AB", "O"])
-    pasien_rh = st.selectbox("Status Rhesus (Rh):", ["Positif", "Negatif"])
+    pasien_abo = st.selectbox(
+        "Golongan Darah Pasien (ABO):", 
+        ["A", "B", "AB", "O"], 
+        index=None, 
+        placeholder="Pilih kategori yang sesuai"
+    )
+    pasien_rh = st.selectbox(
+        "Status Rhesus (Rh):", 
+        ["Positif", "Negatif"], 
+        index=None, 
+        placeholder="Pilih kategori yang sesuai"
+    )
 
 with col2:
     st.write("### Kebutuhan Transfusi")
-    # Menambahkan FFP ke dalam pilihan dropdown
-    komponen = st.selectbox("Jenis Komponen Darah:", ["PRC (Packed Red Cells)", "FFP (Fresh Frozen Plasma)"])
+    komponen = st.selectbox(
+        "Jenis Komponen Darah:", 
+        ["PRC (Packed Red Cells)", "FFP (Fresh Frozen Plasma)"], 
+        index=None, 
+        placeholder="Pilih kategori yang sesuai"
+    )
 
 # Ekstraksi kode komponen murni (mengambil 3 huruf pertama)
 kode_komponen = komponen.split(" ")[0]
 
 if st.button("Verifikasi Kompatibilitas Donor", type="primary", use_container_width=True):
     
-    fakta_awal = {
-        "komponen": kode_komponen, 
-        "pasien_abo": pasien_abo,
-        "pasien_rh": pasien_rh
-    }
-    
-    with st.spinner('Mengevaluasi basis pengetahuan medis...'):
-        hasil = jalankan_forward_chaining(fakta_awal)
+    # Validasi input kosong
+    if pasien_abo is None or pasien_rh is None or komponen is None:
+        st.warning("⚠️ Harap pilih semua kategori (Golongan Darah, Rhesus, dan Komponen) terlebih dahulu.")
+    else:
+        # Ekstraksi kode komponen murni (mengambil 3 huruf pertama)
+        kode_komponen = komponen.split(" ")[0]
         
-        komponen_valid = []
-        for abo in hasil["donor_abo_valid"]:
-            for rh in hasil["donor_rh_valid"]:
-                komponen_valid.append(f"{abo} {rh}")
-    
-    st.success("✅ Inferensi Selesai!")
-    st.write(f"Pasien dengan profil **{pasien_abo} {pasien_rh}** yang membutuhkan **{kode_komponen}** dapat menerima darah dari donor berikut:")
-    
-    # Render pill/tag
-    html_tags = " ".join([f"<span style='background-color: #ff4b4b; color: white; padding: 5px 10px; border-radius: 15px; margin-right: 5px; font-weight: bold;'>{darah}</span>" for darah in komponen_valid])
-    st.markdown(html_tags, unsafe_allow_html=True)
+        fakta_awal = {
+            "komponen": kode_komponen, 
+            "pasien_abo": pasien_abo,
+            "pasien_rh": pasien_rh
+        }
+        
+        with st.spinner('Mengevaluasi basis pengetahuan medis...'):
+            hasil = jalankan_forward_chaining(fakta_awal)
+            
+            komponen_valid = []
+            for abo in hasil["donor_abo_valid"]:
+                for rh in hasil["donor_rh_valid"]:
+                    komponen_valid.append(f"{abo} {rh}")
+        
+        st.success("✅ Inferensi Selesai!")
+        st.write(f"Pasien dengan profil **{pasien_abo} {pasien_rh}** yang membutuhkan **{kode_komponen}** dapat menerima darah dari donor berikut:")
+        
+        # Render pill/tag
+        html_tags = " ".join([f"<span style='background-color: #ff4b4b; color: white; padding: 5px 10px; border-radius: 15px; margin-right: 5px; font-weight: bold;'>{darah}</span>" for darah in komponen_valid])
+        st.markdown(html_tags, unsafe_allow_html=True)
 
-    # Tambahan penjelasan dinamis untuk edukasi
-    if kode_komponen == "PRC":
-        st.info("💡 **Traceability PRC:** Untuk *Packed Red Cells*, sistem memastikan tidak ada **antigen** asing yang masuk ke tubuh pasien. Rhesus dicocokkan secara ketat.")
-    elif kode_komponen == "FFP":
-        st.warning("💡 **Traceability FFP:** Untuk *Plasma*, aturan berbalik karena kita mencegah masuknya **antibodi** asing. Faktor Rhesus umumnya tidak memberikan reaksi klinis signifikan pada transfusi FFP sehingga semua Rhesus diizinkan.")
+        # Penjelasan dinamis
+        if kode_komponen == "PRC":
+            st.info("💡 **Traceability PRC:** Untuk *Packed Red Cells*, sistem memastikan tidak ada **antigen** asing yang masuk ke tubuh pasien. Rhesus dicocokkan secara ketat.")
+        elif kode_komponen == "FFP":
+            st.warning("💡 **Traceability FFP:** Untuk *Plasma*, aturan berbalik karena kita mencegah masuknya **antibodi** asing. Faktor Rhesus umumnya tidak memberikan reaksi klinis signifikan pada transfusi FFP sehingga semua Rhesus diizinkan.")
