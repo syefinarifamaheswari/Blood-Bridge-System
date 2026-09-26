@@ -114,6 +114,6 @@ Browser-level visual verification was not completed in the development environme
 
 ## Live Demo
 
-A public deployment link has not been added yet.
+Demo Website Link: https://blood-bridge-system.streamlit.app/
 
-To try the application, follow the local installation instructions above. The `localhost` address is a local development URL, not a publicly accessible demo.
+Live Demo Link: https://drive.google.com/drive/folders/1rWaJhnVmCwnDCrkk9HaaEthU_7YlwEg0?usp=drive_link
