@@ -91,7 +91,7 @@ def tampilkan_label(daftar_donor):
         )
 
         for donor in daftar_donor[i:i + 4]:
-            # Spasi tidak dapat dipisah ke baris berikutnya.
+            # Menggunakan &nbsp; untuk HTML non-breaking space
             label = escape(donor).replace(" ", "&nbsp;")
 
             html += (
@@ -164,8 +164,6 @@ def main():
     with col2:
         st.write("### Kebutuhan Transfusi")
 
-        # Nilai internal langsung berupa PRC atau FFP.
-        # Karena itu, tidak perlu memanggil komponen.split().
         komponen = st.selectbox(
             "Jenis Komponen Darah:",
             ["PRC", "FFP"],
